@@ -1,0 +1,463 @@
+//---------------------------------------------------------------------------
+#include <vcl>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <limits.h>
+#include <time.h>
+
+#define MAX(x,y) ((x)<(y) ? (y) : (x))
+
+#pragma hdrstop
+
+
+int *cria_vetor(int tam);
+double *cria_vetor_double(int tam);
+int **cria_matriz(int nlinhas, int ncolunas);
+void libera_vetor(int *vetor);
+void libera_matriz(int **matriz, int nlinhas);
+double randomico(double min, double max);
+int menu_principal(void);
+int roleta(int nind, double *fo_pop);
+double sinc(double num);
+double func(double num);
+void libera_vetor_double(double *vetor);
+
+//---------------------------------------------------------------------------
+
+double sinc(double num)
+{
+  float funcao;
+  if (num == 0)
+     funcao = 1;
+  else
+     funcao = sin(num*M_PI)/(num*M_PI);
+  return funcao;
+}
+
+double func(double x){
+        return 0.4 + sinc(4*x) + 1.1*sinc(4*x + 2) + 0.8*sinc(6*x - 2)+ 0.7*sinc(6*x - 4);
+}
+
+#pragma argsused
+int main
+(int argc, char **argv)
+{
+  int n; // numero de indivíduos
+  int bits; // número de bits de um indivíduo
+  int **pop; // matriz da população
+  int **pop_sobrev; // matriz da população sobrevivente
+  int *ind_star; // vetor do mehor indivíduo
+  int pot_2; // armazena uma potëncia de 2 para converter um número binário em decimal  (2^15)
+  int b; // número decimal que representa um indivíduo
+  double x; // número que representa o indivíduo no intervalo [-2,2]
+  int geracoes; // número de gerações criadas
+  double *fo; // vetor dos valores da função objetivo
+  double *fo_sobrev; // vetor dos valores da função objetivo da população sobrevivente
+  double fo_star; // valor da melhor função objetivo
+  double soma; //soma dos valores da função objetivo da população
+  double media; // média dos valores da função objetivo da população
+  double s_star; // melhor valor de x para a função
+  double prob_crossover; // probabilidade de haver cruzamento
+  double prob_mutacao; // probabilidade de haver mutacao
+  double desvio_padrao; // desvio padrão da população
+
+  int choice;
+
+  //srand(1111111111111111); // pega o numero 1000 como semente de numeros aleatorios
+  srand((unsigned) time(NULL)); // pega a hora do relogio como semente
+
+/* Inicialização de parâmetros de variáveis */
+  n = 50;
+  bits = 16;
+  prob_crossover = 0.65;
+  prob_mutacao = 0.01;
+  desvio_padrao = INT_MAX;
+  s_star = -INT_MAX;
+  int MAX_Geracoes = 50;
+
+/* Incialização das estruturas de dados */
+
+  do {
+    choice = menu_principal();
+    switch (choice) {
+    case 1:/* Otimizar a função */
+           srand((int)time(NULL)); // pega a hora do relogio como semente
+           media = 0;
+           soma = 0;
+           geracoes = 1;
+           fo = cria_vetor_double(2*n);
+           ind_star = cria_vetor(bits);
+           pop = cria_matriz(2*n+2,bits);
+           pop_sobrev = cria_matriz(n,bits);
+           fo_sobrev = cria_vetor_double(n);
+//****************************************************************************//
+           /* 1 - Geração de uma população inicial */
+           printf("\n\nGeracao da populacao inicial \n");
+           for (int i = 0; i <= n; i++) {
+              //printf("Individuo %d = ", i);
+              pot_2 = 32768;
+              b = 0;
+              for (int j = 0; j < bits; j++) {
+                 pop[i][j] = random(2);
+                 //printf("%d",pop[i][j]);
+                 b = b + pop[i][j]*pot_2;
+                 pot_2 = pot_2/2;
+              }
+              //printf("\n");
+              x = -2 + (double)(4*b)/65535;
+              fo[i] = func(x);//verifica o fitness do indivíduo i
+              soma += fo[i];
+              //printf("Valor de x = %.6f\n",x);
+              //printf("Valor da funcao objetivo = %.6f\n",fo[i]);
+              if (fo[i] > fo_star) {
+                 fo_star = fo[i];
+                 s_star = x;
+                 for (int k = 0; k < bits; k++)
+                    ind_star[k] = pop[i][k];
+              }
+           }
+           media = soma/n;
+           desvio_padrao = sqrt(soma*soma + media*media);
+           printf("Desvio padrao = %.3f \n",desvio_padrao);
+
+//****************************************************************************//
+           // 2 - Geração das Demais Populações
+           while (geracoes < MAX_Geracoes){
+              printf("Geracao:%d \n", geracoes);
+              int n_filhos = 0;
+              int pai1;
+              int pai2;
+              int ponto_de_corte;
+              while (n_filhos < (n-2)) {
+
+                //************************************************************//
+                // 2.1 - Seleção dos Cromossomos Pais pelo Método da Roleta Russa
+                pai1 = roleta(n,fo);
+                //printf("Pai1:%d \n", pai1);
+                pai2 = roleta(n,fo);
+                //printf("Pai2:%d \n", pai2);
+                //************************************************************//
+
+                float cruza = randomico(0,1);
+                //printf("Cruza = %.3f \n",cruza);
+                 if ( cruza < prob_crossover) {
+
+                    //********************************************************//
+                    //Seleciona o ponto de corte
+                    ponto_de_corte = random(bits);
+                    //printf("ponto_de_corte:%d \n", ponto_de_corte);
+                    //********************************************************//
+
+
+                    //********************************************************//
+                    // 2.2 - Faz o cross-over no ponto de corte escolhido
+                    for (int j=0; j < ponto_de_corte; j++){
+                       pop[n + n_filhos + 1][j] = pop[pai1][j];
+                       pop[n + n_filhos + 2][j] = pop[pai2][j];
+                    }
+                    for (int j = ponto_de_corte; j < bits; j++){
+                       pop[n + n_filhos + 1][j] = pop[pai2][j];
+                       pop[n + n_filhos + 2][j] = pop[pai1][j];
+                    }
+                    //********************************************************//
+
+                    //********************************************************//
+                    // 2.3 - Faz a mutação, se for o caso
+                    if (randomico(0,1) < prob_mutacao){
+                       if (pop[n + n_filhos + 1][random(bits)] == 1)
+                          pop[n + n_filhos + 1][random(bits)] = 0;
+                       else
+                          pop[n + n_filhos + 1][random(bits)] = 1;
+                    }
+                    if (randomico(0,1) < prob_mutacao){
+                       if (pop[n + n_filhos + 2][random(bits)] == 1)
+                          pop[n + n_filhos + 2][random(bits)] = 0;
+                       else
+                          pop[n + n_filhos + 2][random(bits)] = 1;
+                    }
+                    //********************************************************//
+
+                    for (int k = 0; k < 2; k ++){
+                       pot_2 = 32768;
+                       b = 0;
+                       int indice = k + n + n_filhos + 1;
+                       //printf("Filho %d  \n",(indice));
+
+                       //printf("Filho %d = ",(indice - n));
+                       for (int m = 0; m < bits; m++) {
+                          //printf("%d",pop[indice][m]);
+                          //CORREÇÃO: ao invés de k, é indice (k + n + n_filhos + 1)
+                          b = b + pop[indice][m]*pot_2;
+                          pot_2 = pot_2/2;
+                       }
+                       //CORREÇÃO: esqueceu de atualizar o x!
+                       x = -2 + (double)(4*b)/65535;
+                       //printf("\n");
+
+                       //verifica o fitness do indivíduo indice
+                       //CORREÇÃO: ao invés de k, é indice (k + n + n_filhos + 1)
+                       fo[indice] = func(x);
+
+                       //printf("Valor de x = %.6f \n",x);
+                       //printf("Valor da função objetivo = %.6f\n",fo[k]);
+
+                       //CORREÇÃO: ao invés de k, é indice (k + n + n_filhos + 1)
+                       if (fo[indice] > fo_star) {
+                          //CORREÇÃO: ao invés de k, é indice (k + n + n_filhos + 1)
+                          fo_star = fo[indice];
+                          s_star = x;
+                          for (int p = 0; p < bits; p++)
+                             //CORREÇÃO: ao invés de k, é indice (k + n + n_filhos + 1)
+                             ind_star[p] = pop[indice][p];
+                       }
+                    }
+                    n_filhos += 2;
+                 }
+              }
+              geracoes += 1;
+
+              //********************************************************//
+              // 3 - Aceitação
+              /* Definição da população sobrevivente */
+              soma = 0;
+              for (int i = 0; i < n; i++) {
+                  int sobrevivente = roleta(2*n,fo);
+                  for (int j = 0; j < bits; j++)
+                     pop_sobrev[i][j] = pop[sobrevivente][j];
+                  fo_sobrev[i] =  fo[sobrevivente];
+                  soma += fo[sobrevivente];
+              }
+              media = soma/n;
+              desvio_padrao = sqrt(soma*soma + media*media);
+              //********************************************************//
+
+              //printf("Desvio padrao da populacao = %.3f\n", desvio_padrao);
+              //printf(" Melhor Solucao encontrada \n");
+              printf(" Valor maximo da funcao = %.6f \n", fo_star);
+              //printf(" Valor de x para a funcao = %.6f \n", s_star);
+              printf("\n");
+
+               //********************************************************//
+               // 4 - Substituição
+              /* Devolve a população sobrevivente para a matriz da população */
+              libera_vetor_double(fo);
+              libera_matriz(pop,2*n);
+              fo = cria_vetor_double(2*n);
+              pop = cria_matriz(2*n,bits);
+              for (int i = 0; i < n; i++) {
+                 for (int j = 0; j < bits; j++)
+                    pop[i][j] = pop_sobrev[i][j];
+                 fo[i] = fo_sobrev[i];
+              }
+              //********************************************************//
+           }
+           printf("\n******************************************************************************** \n");
+           printf(" Melhor Solucao encontrada \n");
+           printf(" Valor maximo da funcao = %.6f \n", fo_star);
+           printf(" Valor de x para a funcao = %.6f \n", s_star);
+           printf(" Valor binario de x = ");
+           for (int i = 0; i < bits; i++)
+              printf("%d",ind_star[i]);
+           printf("\n");
+           printf("\n******************************************************************************** \n");
+           libera_vetor_double(fo);
+           libera_vetor(ind_star);
+           libera_matriz(pop,2*n);
+           libera_matriz(pop_sobrev,n);
+           libera_vetor_double(fo_sobrev);
+
+           break;
+    case 2: /* Sobre o programa */
+           printf("\n******************************************************************************** \n");
+           printf("\n");
+           printf("Este programa foi desenvolvido por:\n");
+           printf("Monica do Amaral                 <coida@bol.com.br> \n");
+           printf("e\n");
+           printf("Frederico Heitor Jesus Silva    <fred_heitor@hotmail.com> \n");
+           printf("\n");
+           printf("Universidade Federal de Ouro Preto \n");
+           printf("Instituto de Ciencias Exatas e Biologicas \n");
+           printf("Engenharia de Controle e Automacao \n");
+           printf("cic272 - Inteligencia Computacional para Otimizacao\n");
+           printf("\n");
+           printf("Agradecimentos a Leonardo Xavier Teixeira\n");
+           printf("\n\nCORREÇÕES feitas por:\n");
+           printf("Everthon Valadão dos Santos          <everthonvaladao@bol.com.br>\n");
+           printf("Emiliana Mara Lopes Simões           <mililopessimes@yahoo.com.br>\n\n");
+           break;
+
+    default:
+           break;
+    }
+  } while (choice != 0);
+
+
+
+} /* fim do programa principal */
+
+
+//---------------------------------------------------------------------------
+
+
+/* cria memoria para um vetor de tam posicoes */
+int *cria_vetor(int tam)
+{
+  int *vetor;
+
+  vetor = (int *) malloc(tam*sizeof(int));
+  if (!vetor){
+    printf("Falta memoria para alocar o vetor de ponteiros");
+    exit(1);
+  }
+  return vetor;
+}
+
+/* cria memoria para um vetor de tam posicoes */
+double *cria_vetor_double(int tam)
+{
+  double *vetor;
+
+  vetor = (double *) malloc(tam*sizeof(double));
+  if (!vetor){
+    printf("Falta memoria para alocar o vetor de ponteiros");
+    exit(1);
+  }
+  return vetor;
+}
+
+/* libera memoria de um vetor */
+void libera_vetor(int *vetor)
+{
+  free(vetor);
+}
+
+/* libera memoria de um vetor double*/
+void libera_vetor_double(double *vetor)
+{
+  free(vetor);
+}
+
+/* Cria matriz de ponteiros para inteiros com nlinhas e ncolunas */
+int **cria_matriz(int nlinhas, int ncolunas)
+{
+  register int i;
+  int **matriz;
+
+  matriz = (int **) malloc(nlinhas*sizeof(int *));
+  if (!matriz) {
+        printf("Falta memoria para alocar a matriz de ponteiros\n");
+        exit(1);
+  }
+  for (i=0; i < nlinhas; i++) {
+    matriz[i] = (int *) malloc(ncolunas*sizeof(int));
+    if (!matriz[i]){
+      printf("Falta memoria para alocar a matriz de ponteiros.\n");
+      exit(1);
+    }
+  }
+  return matriz;
+}
+
+
+void libera_matriz(int **matriz, int nlinhas)
+{
+  register int i;
+
+  for (i=nlinhas-1; i >= 0; i--)
+    free((int *) matriz[i]);
+  free((int *) matriz);
+}
+
+
+/*void mutacao(int *s, int n)
+{
+   int j;
+   j = random(n);
+   if (s[j])
+        s[j] = 0;
+   else
+        s[j] = 1;
+}*/
+/* Gera numero aleatorio entre min e max */
+double randomico(double min, double max)
+{
+  if (min == max) return min;
+  return ((double) (rand()%10000/10000.0)*(max-min) + min);
+}
+
+/* Esta rotina devolve o individuo escolhido pelo mecanismo da roleta russa */
+int roleta(int nind, double *fo_pop)
+{
+  register int j;
+  double aux;
+  double *escala, *fracao;
+  int escolhido;
+
+  fracao = cria_vetor_double(nind);
+  escala = cria_vetor_double(nind);
+  double som = 0;
+  for (int j=0; j < nind; j++){
+    som += fo_pop[j];
+  }
+  for (int j=0; j < nind; j++){
+    fracao[j] = fo_pop[j]/som;
+  }
+  escala[0] = fracao[0];
+  for (int j=1; j < nind; j++){
+    escala[j] = escala[j-1] + fracao[j];
+  }
+  aux = randomico(0,1);
+  j = 0;
+  while (escala[j] <= aux) j++;
+  escolhido = j;
+  free(fracao);
+  free(escala);
+  return escolhido;
+}
+
+/* Menu principal */
+int menu_principal(void)
+{
+  int escolha;
+
+  do {
+    printf("\n******************************************************************************** \n");
+    printf("                                                        ***                      \n");
+    printf("         ****  ***** * *   * * *****     *     *****     *      ****             \n");
+    printf("        *    *   *   * ** ** *    *     * *   *         * *    *    *            \n");
+    printf("        *    *   *   *   * * *   *     *   *  *        *   *   *    *            \n");
+    printf("        *    *   *   * *   * *  *     ******* *       *******  *    *            \n");
+    printf("         ****    *   * *   * * ***** *       * ***** *       *  ****             \n");
+    printf("                                          *                                      \n");
+    printf("                                                                                 \n");
+    printf("                                                                                 \n");
+    printf("               D E   F U N C O E S   C O N T I N U A S   V I A                   \n");
+    printf("                                                                                 \n");
+    printf("                                                                                 \n");
+    printf("         *     *       *****  ****  *****  * ***** *   *  ****     ****          \n");
+    printf("        * *    *      *      *    * *    * *   *   ** ** *    *   *              \n");
+    printf("       *   *   *      *      *    * *    * *   *   * * * *    *     **           \n");
+    printf("      *******  *      *    * *    * *****  *   *   *   * *    *       *          \n");
+    printf("     *       * ******  ****   ****  *    * *   *   *   *  ****    ****           \n");
+    printf("                                                                                 \n");
+    printf("                                                                                 \n");
+    printf("                                 *                                               \n");
+    printf("            ***** ****** *   * ****** ***** *  *****  *****    ****              \n");
+    printf("           *      *      **  * *        *   * *      *     *  *                  \n");
+    printf("           *      ****   * * * ****     *   * *      *     *    **               \n");
+    printf("           *    * *      *  ** *        *   * *      *     *      *              \n");
+    printf("            ****  ****** *   * ******   *   *  *****  *****   *****              \n");
+    printf("                                                                                 \n");
+    printf("\n******************************************************************************** \n");/**/
+    printf("                                                                                  \n");
+    printf("         1. Otimizar a funcao \n");
+    printf("         2. Sobre o programa \n");
+    printf("         0. Sair \n");
+    printf("         Escolha: ");
+    scanf("%d",&escolha);
+  } while (escolha < 0 || escolha > 2);
+  return escolha;
+}
+
