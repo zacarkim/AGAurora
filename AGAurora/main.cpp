@@ -10,8 +10,6 @@
 #include <stdlib.h>
 #include <string>
 
-// mmm teste
-
 using namespace cv;
 using namespace std;
 
@@ -91,7 +89,7 @@ int main( int argc, char** argv )
 
 
 	imagemPadrao = imread( argv[1], 0);
-	imagemPadrao = limpa(imagemPadrao);
+	//imagemPadrao = limpa(imagemPadrao);
 
 	string url = string(argv[2]);
 
@@ -211,9 +209,9 @@ void algoritmoGenetico()
 
 
 		mostra = imagemBase.clone();
-		Mat trans = transformaImagem(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][2],
+		Mat pad = transformaImagem(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][2],
 				populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][3]);
-		Mat pad = autocrop(trans);
+		//Mat pad = autocrop(trans);
 		imshow( "Padrão", pad );
 		Rect win(int(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][0]),
 				 int(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][1]), pad.cols, pad.rows);
@@ -237,13 +235,13 @@ void algoritmoGenetico()
 			//fazSelecaoTorneio();
 			//fazSelecaoSorteio();
 
-			fazCrossoverGene(); //
-			//fazCrossoverUmPonto();
+			//fazCrossoverGene(); //
+			fazCrossoverUmPonto();
 			//fazCrossoverDoisPonto();
 			//fazCrossoverUniforme();
 
-			fazMutacaoGene(); //
-			//fazMutacaoBitFlip();
+			//fazMutacaoGene(); //
+			fazMutacaoBitFlip();
 			//fazMutacaoSwap();
 
 		}
@@ -487,7 +485,8 @@ int analizaValidadeCromossomo(string cromo) //Testadoooooooooooooooooooooooooooo
 	int cr2 = bin_to_dec(g2);
 	int cr3 = bin_to_dec(g3);
 
-	if (cr0 >= 0 && cr0 <= 92 - 49 && cr1 >= 0 && cr1 <= 112 - 40 && cr2 >= 0 && cr2 <= 7 && cr3 >= 0 && cr3 <= 63)
+	//if (cr0 >= 0 && cr0 <= 92 - 49 && cr1 >= 0 && cr1 <= 112 - 40 && cr2 >= 0 && cr2 <= 7 && cr3 >= 0 && cr3 <= 63)
+	if (cr0 >= 0 && cr0 <= 92 - imagemPadrao.cols && cr1 >= 0 && cr1 <= 112 - imagemPadrao.rows && cr2 >= 0 && cr2 <= 7 && cr3 >= 0 && cr3 <= 63)
 	{
 		return 1;
 	}
@@ -863,14 +862,14 @@ void fazMutacaoGene() //Testadooooooooooooooooooooooooooooooo
 			switch (escolhaMutacaoGene)
 			{
 				case 0:
-					a = transformaImagem(populacao[k][2], populacao[k][3]);
-					b = autocrop(a);
+					b = transformaImagem(populacao[k][2], populacao[k][3]);
+					//b = autocrop(a);
 					cromossomo[0] = rand() % (imagem_base_largura - b.cols); //x
 					populacao[k][escolhaMutacaoGene] = cromossomo[0];
 					break;
 				case 1:
-					a = transformaImagem(populacao[k][2], populacao[k][3]);
-					b = autocrop(a);
+					b = transformaImagem(populacao[k][2], populacao[k][3]);
+					//b = autocrop(a);
 					cromossomo[1] = rand() % (imagem_base_altura - b.rows);//y
 					populacao[k][escolhaMutacaoGene] = cromossomo[1];
 					break;
@@ -1177,8 +1176,8 @@ void iniciaPopulacao(int num) //Testadooooooooooooooooooooooooooooooo
 
 		cromossomo[3] = rand() % 64; //rotação
 
-		Mat a = transformaImagem(cromossomo[2], cromossomo[3]);
-		Mat b = autocrop(a);
+		Mat b = transformaImagem(cromossomo[2], cromossomo[3]);
+		//Mat b = autocrop(a);
 
 
 		cromossomo[0] = rand() % (imagem_base_largura - b.cols); //x olharrrrrrrrrrrrrrrrrr
@@ -1202,8 +1201,8 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 //	cout << "X povo = " << populacao[povo][0] << " Y povo = " << populacao[povo][1] << endl;
 //	cout << "scala = " << populacao[povo][2] << " rotação = " << populacao[povo][3] << endl;
 
-	Mat a = transformaImagem(populacao[povo][2], populacao[povo][3]);
-	Mat b = autocrop(a);
+	Mat b = transformaImagem(populacao[povo][2], populacao[povo][3]);
+	//Mat b = autocrop(a);
 
 
 //	cout << "X povo = " << populacao[povo][0] << "Y povo = " << populacao[povo][1] << endl;
@@ -1243,8 +1242,8 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 			//cout << "x = " << x << " y = " << y << endl;
 			int corPixelBase = imagemBase.at<uchar>(Point(int(populacao[povo][0]) + x, int(populacao[povo][1]) + y));
 			int corPixelPadrao = b.at<uchar>(Point(x,y));
-			if (corPixelPadrao != 255)
-			{
+			//if (corPixelPadrao != 255)
+			//{
 				//somas.at<uchar>(Point(x,y)) = 0;
 				//imshow("Somas", somas);
 				//somas2.at<uchar>(Point(int(populacao[povo][0]) + x, int(populacao[povo][1]) + y)) = 255;
@@ -1254,7 +1253,7 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 				I += corPixelBase;
 				T += corPixelPadrao;
 				cont++;
-			}
+			//}
 			cont2++;
 		}
 	}
@@ -1278,8 +1277,8 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 		{
 			int corPixelBase = imagemBase.at<uchar>(Point(populacao[povo][0] + x, populacao[povo][1] + y));
 			int corPixelPadrao = b.at<uchar>(Point(x,y));
-			if (corPixelPadrao != 255)
-			{
+			//if (corPixelPadrao != 255)
+			//{
 //				mostr.at<uchar>(Point(x,y)) = 0;
 //				imshow("Teste", mostr);
 //				mostr2.at<uchar>(Point(populacao[povo][0] + x, populacao[povo][1] + y)) = 255;
@@ -1296,7 +1295,7 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 				//cout << "somatorioDenominador1 = " << somatorioDenominador1 << " somatorioDenominador2 = "
 				// << somatorioDenominador2 << endl;
 
-			}
+			//}
 		}
 	}
 
@@ -1310,7 +1309,8 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 	//cout << "numerador = " << somatorioNumerador << " denominador = " << somatorioDenominador << endl;
 //	float l = float(cont) / float(cont2);
 //	cout << l << " " << cont << " " << cont2 << endl;
-	return lambda * (float(cont) / float(cont2));
+	return lambda;
+	//return lambda * (float(cont) / float(cont2));
 }
 
 Mat autocrop(Mat srcc) //Testadooooooooooooooooooooooooooooooo
