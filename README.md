@@ -1,2 +1,0 @@
-# AGAurora
-Código Trabalho
