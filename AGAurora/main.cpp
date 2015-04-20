@@ -57,36 +57,21 @@ const int numElite = 1;
 const int numChaveTorneio = 3;
 const float corte = 0.7;
 const float prob_crossover = 0.7;
-const float prob_mutacao = 0.01;
+const float prob_mutacao = 0.1;
 float cromossomo[4];
 vector<vector <float> > populacao;
 vector<vector <float> > elite;
+vector<float> mediaFitness;
 float ordenPopulacaoFitness[numeroPopulacao][2];
 void ordenaVetorFitnessAscendente();
 
 // Outras Variaveis ...
-//ofstream file;
-//string texto;
+string urlImagem;
+ofstream file;
 
 
 int main( int argc, char** argv )
 {
-    //file.open("../testessss.txt", ios_base::trunc);
-
-
-    //texto += "################ ENSAIO #################\n";
-    //texto += format("\nNumero de População = %d", numeroPopulacao);
-    //texto += format("\nNumero de Rodadas = %d", maxRodadas);
-    //texto += format("\nLimiar de Fitness = %.2f", corte);
-   // texto += format("\nProbabilidade de Crossover = %.2f", prob_crossover);
-   // texto += format("\nProbabilidade de Mutação = %.2f", prob_mutacao);
-    //texto += "\n\n ----------------- INICIO ------------------";
-   // texto += "\n\n";
-
-    //file.open("../testessss.txt", ios_base::trunc);
-	//file << texto;
-	//file.close();
-
 
 	imagemPadrao = imread( argv[1], 0);
 	//imagemPadrao = limpa(imagemPadrao);
@@ -102,7 +87,6 @@ int main( int argc, char** argv )
 		string mensagemErro = "erro no nome do arquivo!.";
 		cout << mensagemErro << endl;;
 	}
-	string urlImagem;
 	while (getline(arquivo, urlImagem)) {
 		//texto += " <<<<<<<< Imagem Testada = " + urlImagem;
 		if(!urlImagem.empty()) {
@@ -116,7 +100,7 @@ int main( int argc, char** argv )
 
 			algoritmoGenetico();
 
-			cout << "melhorCromossomo -> " << ordenPopulacaoFitness[numeroPopulacao - 1][0] << endl;
+			cout << "\n\nmelhorCromossomo -> " << ordenPopulacaoFitness[numeroPopulacao - 1][0] << endl;
 			cout << "fitness do melhor -> " << ordenPopulacaoFitness[numeroPopulacao - 1][1] << endl;
 		}
 	}
@@ -137,10 +121,12 @@ void algoritmoGenetico()
     // calcula fitness de cada cromossomo...
     int parada = 0;
     int loop = 0;
+    string textoFit1, textoFit2;
 
-    while (parada == 0)
+    while (loop < maxRodadas)
     {
 		cout << "\n\n ===== rodada " << loop << endl;;
+		float mediaFit = 0;
 
 		for (int a = 0; a < numeroPopulacao; a++) // insere valores de fitness
 		{
@@ -149,6 +135,7 @@ void algoritmoGenetico()
 
 			ordenPopulacaoFitness[a][0] = float(a);
 			ordenPopulacaoFitness[a][1] = fit;
+			mediaFit += fit;
 
 
 			cout << "Pessoa " << ordenPopulacaoFitness[a][0] << " -> Fitness = " <<
@@ -160,13 +147,13 @@ void algoritmoGenetico()
 
 			//texto += format("Pessoa %d -> Fitness = %d", ordenPopulacaoFitness[a][0], ordenPopulacaoFitness[a][1]);
 //			mostra = imagemBase.clone();
-//			Mat trans = transformaImagem(populacao[a][2], populacao[a][3] - 32);
-//		    Mat pad = autocrop(trans);
+//			Mat pad = transformaImagem(populacao[a][2], populacao[a][3]);
+//		   // Mat pad = autocrop(trans);
 //		    imshow( "Padrão", pad );
 //		    Rect win(int(populacao[a][0]), int(populacao[a][1]), pad.cols, pad.rows);
 //		    rectangle(mostra, win, Scalar(255,255,255), 1, 8 );
 //		    imshow( "Base", mostra );
-//		    waitKey(200);
+		   // waitKey(0);
 		}
 		//waitKey(0);
 		//exit(0);
@@ -217,17 +204,77 @@ void algoritmoGenetico()
 				 int(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][1]), pad.cols, pad.rows);
 		rectangle(mostra, win, Scalar(255,255,255), 1, 8 );
 		imshow( "Base", mostra );
-		waitKey(1);
+		//waitKey(0);
 
 		cout << "Maximo Fitness = " << ordenPopulacaoFitness[numeroPopulacao - 1][1] << endl;
-		//texto += format("\nMaximo Fitness = %d\n\n", max);
 		loop++;
 
-		if (ordenPopulacaoFitness[numeroPopulacao - 1][1] >= corte || maxRodadas == loop)
+		float val = mediaFit / numeroPopulacao;
+
+		mediaFitness.push_back(val);
+		cout << "Media Fitness = " << val << endl;
+
+		if ((mediaFitness[loop] >= corte || maxRodadas == loop) && parada != 1)
 		{
-			cout << " <<<<<<< PARADA POR ATINGIR O CORTE OU MAXIMO DE RODADAS >>>>>>>>> " << endl;
-			//texto += format("\n\n<<<<<<< PARADA POR ATINGIR O CORTE OU MAXIMO DE RODADAS >>>>>>>>>\n\n");
+			namedWindow( "Base 1", WINDOW_NORMAL ); //WINDOW_NORMAL
+			mostra = imagemBase.clone();
+			Mat pad1 = transformaImagem(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][2],
+					populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][3]);
+			//Mat pad1 = autocrop(trans);
+			Rect win1(int(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][0]),
+					int(populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][1]), pad.cols, pad.rows);
+
+			Mat pad2;
+			Rect win2;
+			textoFit1 = format("x = %2.f y = %2.f scala = %1.2f rotação = %2.f fitness = %f", populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][0],
+																		populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][1],
+																		populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][2],
+																		populacao[int(ordenPopulacaoFitness[numeroPopulacao - 1][0])][3],
+																	    ordenPopulacaoFitness[numeroPopulacao - 1][1]);
+
+			for (int h = numeroPopulacao - 2; h > 0; h--)
+			{
+				if (ordenPopulacaoFitness[h][1] < ordenPopulacaoFitness[numeroPopulacao - 1][1])
+				{
+					pad2 = transformaImagem(populacao[int(ordenPopulacaoFitness[h][0])][2],
+						populacao[int(ordenPopulacaoFitness[h][0])][3]);
+					//Mat pad2 = autocrop(trans);
+					Rect m(int(populacao[int(ordenPopulacaoFitness[h][0])][0]),
+						int(populacao[int(ordenPopulacaoFitness[h][0])][1]), pad.cols, pad.rows);
+					win2 = m;
+					textoFit2 = format("x = %2.f y = %2.f scala = %1.2f rotação = %2.f fitness = %f", populacao[int(ordenPopulacaoFitness[h][0])][0],
+																		 populacao[int(ordenPopulacaoFitness[h][0])][1],
+																		 populacao[int(ordenPopulacaoFitness[h][0])][2],
+																		 populacao[int(ordenPopulacaoFitness[h][0])][3],
+																		 ordenPopulacaoFitness[h][1]);
+
+					break;
+				}
+			}
+
+			rectangle(mostra, win1, Scalar(255,255,255), 1, 8 );
+			rectangle(mostra, win2, Scalar(255,255,255), 1, 8 );
+			imshow( "Base 1", mostra );
+
+			vector<int> compression_params;
+			compression_params.push_back(IMWRITE_PXM_BINARY);
+			compression_params.push_back(0);
+			string texUrl = urlImagem.substr(0, urlImagem.length() - 4);
+			texUrl += "b.pgm";
+//			putText(mostra, textoFit1, Point(50,90), FONT_HERSHEY_COMPLEX, 0.2, Scalar(0, 0, 255));
+//			putText(mostra, textoFit2, Point(50,100), FONT_HERSHEY_COMPLEX, 0.2, Scalar(0, 0, 255));
+			imwrite(texUrl, mostra, compression_params);
+
+			texUrl = urlImagem.substr(0, urlImagem.length() - 4);
+			texUrl += "p1.pgm";
+			imwrite(texUrl, pad1, compression_params);
+
+			texUrl = urlImagem.substr(0, urlImagem.length() - 4);
+			texUrl += "p2.pgm";
+			imwrite(texUrl, pad2, compression_params);
+
 			parada = 1;
+			waitKey(0);
 		}
 		else
 		{
@@ -236,16 +283,36 @@ void algoritmoGenetico()
 			//fazSelecaoSorteio();
 
 			//fazCrossoverGene(); //
-			fazCrossoverUmPonto();
+			//fazCrossoverUmPonto();
 			//fazCrossoverDoisPonto();
 			//fazCrossoverUniforme();
 
 			//fazMutacaoGene(); //
-			fazMutacaoBitFlip();
+			//fazMutacaoBitFlip();
 			//fazMutacaoSwap();
 
 		}
 	}
+    string texUrl = urlImagem.substr(0, urlImagem.length() - 4);
+    texUrl += "arq.csv";
+	file.open(texUrl.c_str(), ios_base::trunc);
+	file << "#" << textoFit1 << endl;
+	file << "#" << textoFit2 << endl;
+	file << "\n#4 Numero de Gerações\n#2 Numero de População\n#3 Probabilidade de Crossover\n#4 Probabilidade de Mutação"
+			"\n#5 Numero de Elite\n#6 Numero de Chave p/ Torneio\n#7 Media de Fitness p/ Corte\n\n";
+	file << maxRodadas << endl;
+	file << numeroPopulacao << endl;
+	file << prob_crossover << endl;
+	file << prob_mutacao << endl;
+	file << numElite << endl;
+	file << numChaveTorneio << endl;
+	file << corte << endl;
+
+	for (int u = 0; u < mediaFitness.size(); u++)
+	{
+		file << endl << mediaFitness[u] << ";" << u + 1;
+	}
+	file.close();
 }
 
 void ordenaVetorFitnessAscendente() //Testadooooooooooooooooooooooooooooooo
@@ -877,33 +944,33 @@ void fazMutacaoGene() //Testadooooooooooooooooooooooooooooooo
 					switch (rand() % 8)
 					{
 						case 0:
-							populacao[k][escolhaMutacaoGene] = 0.5; // scala
+							populacao[k][escolhaMutacaoGene] = 1; //0.5; // scala
 							break;
 						case 1:
-							populacao[k][escolhaMutacaoGene] = 0.75;
+							populacao[k][escolhaMutacaoGene] = 1; //0.75;
 							break;
 						case 2:
 							populacao[k][escolhaMutacaoGene] = 1;
 							break;
 						case 3:
-							populacao[k][escolhaMutacaoGene] = 1.25;
+							populacao[k][escolhaMutacaoGene] = 1; //1.25;
 							break;
 						case 4:
-							populacao[k][escolhaMutacaoGene] = 1.5;
+							populacao[k][escolhaMutacaoGene] = 1; //1.5;
 							break;
 						case 5:
-							populacao[k][escolhaMutacaoGene] = 1.75;
+							populacao[k][escolhaMutacaoGene] = 1; //1.75;
 							break;
 						case 6:
-							populacao[k][escolhaMutacaoGene] = 2;
+							populacao[k][escolhaMutacaoGene] = 1; //2;
 							break;
 						case 7:
-							populacao[k][escolhaMutacaoGene] = 2.25;
+							populacao[k][escolhaMutacaoGene] = 1; //2.25;
 							break;
 					}
 					break;
 				case 3:
-					populacao[k][escolhaMutacaoGene] = rand() % 64;
+					populacao[k][escolhaMutacaoGene] = 32; //rand() % 64;
 					break;
 			}
 			cout << "\nGene depois ->  " << populacao[k][0] << " ; "
@@ -1149,32 +1216,32 @@ void iniciaPopulacao(int num) //Testadooooooooooooooooooooooooooooooo
 		switch (auxRand)
 		{
 			case 0:
-				cromossomo[2] = 0.5; // scala
+				cromossomo[2] = 1; //0.5; // scala
 				break;
 			case 1:
-				cromossomo[2] = 0.75;
+				cromossomo[2] = 1; //0.75;
 				break;
 			case 2:
 				cromossomo[2] = 1;
 				break;
 			case 3:
-				cromossomo[2] = 1.25;
+				cromossomo[2] = 1; //1.25;
 				break;
 			case 4:
-				cromossomo[2] = 1.5;
+				cromossomo[2] = 1; //1.5;
 				break;
 			case 5:
-				cromossomo[2] = 1.75;
+				cromossomo[2] = 1; //1.75;
 				break;
 			case 6:
-				cromossomo[2] = 2;
+				cromossomo[2] = 1; //2;
 				break;
 			case 7:
-				cromossomo[2] = 2.25;
+				cromossomo[2] = 1; //2.25;
 				break;
 		}
 
-		cromossomo[3] = rand() % 64; //rotação
+		cromossomo[3] = 32; //rand() % 64; //rotação
 
 		Mat b = transformaImagem(cromossomo[2], cromossomo[3]);
 		//Mat b = autocrop(a);
@@ -1227,7 +1294,6 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 	int T = 0;
 	int T_ = 0;
 	int cont = 0;
-	int cont2 = 0;
 
 	// calcula média.
 	//Mat somas = b.clone();
@@ -1254,7 +1320,6 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 				T += corPixelPadrao;
 				cont++;
 			//}
-			cont2++;
 		}
 	}
 	//I_ = ((I * 1) / (cont)) * (cont / cont2);
@@ -1262,6 +1327,7 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 
 	I_ = (I * 1) / cont;
 	T_ = (T * 1) / cont;
+	//cout << "I = " << I << " I_ = " << I_ << " T = " << T << " T_ = " << T_ << endl;
 
 
 	// calcula coeficiente de correlação cruzada.
@@ -1303,14 +1369,13 @@ float correlacaoCruzada(int povo) //Testadooooooooooooooooooooooooooooooo
 	//cout << "somatorioDenominador Geral  1 * 2 = " << somatorioDenominador << endl;
 
 	somatorioDenominador = 	sqrt(somatorioDenominador1 * somatorioDenominador2);
+	//somatorioDenominador = 	sqrt((somatorioDenominador1 * somatorioDenominador1) * (somatorioDenominador2 * somatorioDenominador2));
 	//cout << "somatorioDenominador Geral  RAIZ (1 * 2) = " << somatorioDenominador << endl;
 
 	lambda = somatorioNumerador / somatorioDenominador;
 	//cout << "numerador = " << somatorioNumerador << " denominador = " << somatorioDenominador << endl;
-//	float l = float(cont) / float(cont2);
-//	cout << l << " " << cont << " " << cont2 << endl;
+
 	return lambda;
-	//return lambda * (float(cont) / float(cont2));
 }
 
 Mat autocrop(Mat srcc) //Testadooooooooooooooooooooooooooooooo
