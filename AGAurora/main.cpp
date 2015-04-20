@@ -248,7 +248,7 @@ void algoritmoGenetico()
 																		 populacao[int(ordenPopulacaoFitness[h][0])][3],
 																		 ordenPopulacaoFitness[h][1]);
 
-					break;
+					break; //
 				}
 			}
 
